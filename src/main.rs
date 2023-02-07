@@ -36,11 +36,12 @@ pub fn main() -> Result<()> {
         .map_err(|e| e.to_string())?;
 
     let (window_width, window_height) = canvas.window().drawable_size();
-
     let display_ratio = window_width / WINDOW_WIDTH;
+
     let tile_size = TILE_SIZE * display_ratio;
     let width = u16::try_from(window_width / tile_size).map_err(|e| e.to_string())?;
     let height = u16::try_from(window_height / tile_size).map_err(|e| e.to_string())?;
+
     let pixel_format = PixelFormatEnum::RGB24;
     let pitch = pixel_format.byte_size_of_pixels(width.into());
     let byte_size = pixel_format.byte_size_from_pitch_and_height(pitch, height.into());
