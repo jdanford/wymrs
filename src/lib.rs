@@ -8,7 +8,7 @@ mod color;
 mod direction;
 mod error;
 mod point;
-pub mod tile;
+mod tile;
 mod world;
 mod wyrm;
 
