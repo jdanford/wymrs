@@ -72,6 +72,12 @@ pub fn main() -> Result<()> {
         Ok(())
     };
 
+    let world_coordinate_from_screen = |x: i32| -> Result<u16> {
+        u16::try_from(x as u32 * display_ratio / tile_size).map_err(|e| e.to_string())
+    };
+
+    render(&mut world)?;
+
     let mut event_pump = sdl_context.event_pump()?;
     let mut elapsed_frames = 0;
 
@@ -80,10 +86,8 @@ pub fn main() -> Result<()> {
             match event {
                 Event::Quit { .. } => break 'running,
                 Event::MouseButtonUp { x, y, .. } => {
-                    let world_x = u16::try_from(x as u32 * display_ratio / tile_size)
-                        .map_err(|e| e.to_string())?;
-                    let world_y = u16::try_from(y as u32 * display_ratio / tile_size)
-                        .map_err(|e| e.to_string())?;
+                    let world_x = world_coordinate_from_screen(x)?;
+                    let world_y = world_coordinate_from_screen(y)?;
                     let position = Point::new(world_x, world_y);
                     world.create_wyrm(position)?;
                 }
@@ -96,8 +100,8 @@ pub fn main() -> Result<()> {
             render(&mut world)?;
         }
 
-        sleep(Duration::from_secs_f64(1.0 / FPS));
         elapsed_frames += 1;
+        sleep(Duration::from_secs_f64(1.0 / FPS));
     }
 
     Ok(())

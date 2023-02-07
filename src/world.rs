@@ -34,7 +34,7 @@ pub type Neighbors = Vec<(RelativeDirection, i8)>;
 impl World {
     #[must_use]
     pub fn new(params: &NewWorldParams) -> Self {
-        let tile_count = usize::from(params.width * params.height);
+        let tile_count = usize::from(params.width) * usize::from(params.height);
         let mut world = World {
             width: params.width,
             height: params.height,
@@ -82,7 +82,7 @@ impl World {
     }
 
     fn index(&self, position: Point<u16>) -> usize {
-        usize::from(position.y * self.width + position.x)
+        usize::from(position.y) * usize::from(self.width) + usize::from(position.x)
     }
 
     fn at_edge(&self, point: Point<u16>) -> bool {
