@@ -145,7 +145,7 @@ impl World {
             self.create_random_wyrm()?;
         }
 
-        let sorted_wyrm_ids: Vec<u16> = self.wyrms.keys().into_iter().copied().collect();
+        let sorted_wyrm_ids: Vec<u16> = self.wyrms.keys().copied().collect();
         for wyrm_id in sorted_wyrm_ids {
             if self.wyrms.contains_key(&wyrm_id) {
                 self.update_wyrm(wyrm_id)?;

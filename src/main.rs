@@ -1,4 +1,4 @@
-use std::{thread::sleep, time::Duration};
+use std::{time::Duration, time::Instant};
 
 use sdl2::{
     event::Event,
@@ -13,8 +13,8 @@ const WINDOW_HEIGHT: u32 = 768;
 const TILE_SIZE: u32 = 8;
 const SPAWN_INTERVAL: usize = 32;
 
-const FPS: f64 = 60.0;
-const FRAMES_PER_STEP: usize = 4;
+const FPS: u64 = 16;
+const STEP_TIME: Duration = Duration::from_micros(1_000_000 / FPS);
 
 pub fn main() -> Result<()> {
     let sdl_context = sdl2::init()?;
@@ -32,6 +32,7 @@ pub fn main() -> Result<()> {
     let mut canvas = window
         .into_canvas()
         .accelerated()
+        .present_vsync()
         .build()
         .map_err(|e| e.to_string())?;
 
@@ -79,7 +80,7 @@ pub fn main() -> Result<()> {
     render(&mut world)?;
 
     let mut event_pump = sdl_context.event_pump()?;
-    let mut elapsed_frames = 0;
+    let mut last_step_time: Option<Instant> = None;
 
     'running: loop {
         for event in event_pump.poll_iter() {
@@ -95,13 +96,12 @@ pub fn main() -> Result<()> {
             }
         }
 
-        if elapsed_frames % FRAMES_PER_STEP == 0 {
+        let elapsed_time = last_step_time.map_or(Duration::MAX, |time| time.elapsed());
+        if elapsed_time >= STEP_TIME {
+            last_step_time = Some(Instant::now());
             world.step()?;
             render(&mut world)?;
         }
-
-        elapsed_frames += 1;
-        sleep(Duration::from_secs_f64(1.0 / FPS));
     }
 
     Ok(())
