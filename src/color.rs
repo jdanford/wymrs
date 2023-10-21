@@ -1,4 +1,4 @@
-use lazy_static::lazy_static;
+use once_cell::sync::Lazy;
 use palette::{FromColor, Oklch, Srgb};
 use rand::Rng;
 use rand_distr::Normal;
@@ -13,12 +13,10 @@ type LchDistributionValues = (
     NormalDistributionValues,
 );
 
-lazy_static! {
-    pub static ref EMPTY: Color = color_from_oklch(0.184, 0.052, 249.7);
-    pub static ref WALL: Color = color_from_oklch(0.6, 0.09, 300.0);
-    pub static ref FOOD: Color = color_from_oklch(0.4, 0.152, 19.7);
-    pub static ref MISSING: Color = color_from_oklch(1.0, 0.0, 0.0);
-}
+pub static EMPTY: Lazy<Color> = Lazy::new(|| color_from_oklch(0.184, 0.052, 249.7));
+pub static WALL: Lazy<Color> = Lazy::new(|| color_from_oklch(0.6, 0.09, 300.0));
+pub static FOOD: Lazy<Color> = Lazy::new(|| color_from_oklch(0.4, 0.152, 19.7));
+pub static MISSING: Lazy<Color> = Lazy::new(|| color_from_oklch(1.0, 0.0, 0.0));
 
 // common
 const ORANGEYELLOW: LchDistributionValues = ((0.8, 0.05), (0.25, 0.05), (90.0, 10.0));

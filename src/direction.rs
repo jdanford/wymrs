@@ -66,10 +66,10 @@ impl Direction {
 impl From<Direction> for Point<i8> {
     fn from(direction: Direction) -> Self {
         match direction {
-            Direction::Up => Point { x: 0, y: -1 },
-            Direction::Right => Point { x: 1, y: 0 },
-            Direction::Down => Point { x: 0, y: 1 },
-            Direction::Left => Point { x: -1, y: 0 },
+            Direction::Up => Point::new(0, -1),
+            Direction::Right => Point::new(1, 0),
+            Direction::Down => Point::new(0, 1),
+            Direction::Left => Point::new(-1, 0),
         }
     }
 }

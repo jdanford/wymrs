@@ -9,6 +9,7 @@
 )]
 
 mod color;
+pub mod config;
 mod direction;
 mod error;
 mod point;

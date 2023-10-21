@@ -3,18 +3,17 @@ use std::collections::HashMap;
 use num::clamp;
 use rand::{rngs::StdRng, Rng, SeedableRng};
 use rand_distr::Normal;
-use sdl2::pixels::PixelFormatEnum;
 
 use crate::{
-    color, random_wyrm_color, tile, Color, Direction, NewWyrmParams, Point, RelativeDirection,
-    Result, Wyrm,
+    color,
+    config::{PIXEL_FORMAT, SPAWN_INTERVAL},
+    random_wyrm_color, tile, Color, Direction, NewWyrmParams, Point, RelativeDirection, Result,
+    Wyrm,
 };
 
 pub struct World {
     pub width: u16,
     pub height: u16,
-    pub pixel_format: PixelFormatEnum,
-    pub spawn_interval: usize,
     pub wyrms: HashMap<u16, Wyrm>,
     next_wyrm_id: u16,
     tiles: Vec<u16>,
@@ -25,8 +24,6 @@ pub struct World {
 pub struct NewWorldParams {
     pub width: u16,
     pub height: u16,
-    pub pixel_format: PixelFormatEnum,
-    pub spawn_interval: usize,
 }
 
 pub type Neighbors = Vec<(RelativeDirection, i8)>;
@@ -38,8 +35,6 @@ impl World {
         let mut world = World {
             width: params.width,
             height: params.height,
-            spawn_interval: params.spawn_interval,
-            pixel_format: params.pixel_format,
             wyrms: HashMap::new(),
             next_wyrm_id: tile::WYRM,
             tiles: vec![tile::EMPTY; tile_count],
@@ -139,9 +134,7 @@ impl World {
     }
 
     pub fn step(&mut self) -> Result<()> {
-        if self.current_step > self.spawn_interval / 2
-            && self.current_step % self.spawn_interval == 0
-        {
+        if self.current_step > SPAWN_INTERVAL / 2 && self.current_step % SPAWN_INTERVAL == 0 {
             self.create_random_wyrm()?;
         }
 
@@ -299,7 +292,7 @@ impl World {
                 let tile_color = self.get_tile_color(tile);
                 let (r, g, b) = tile_color.rgb();
 
-                let i = tile_index * self.pixel_format.byte_size_per_pixel();
+                let i = tile_index * PIXEL_FORMAT.byte_size_per_pixel();
                 pixel_data[i] = r;
                 pixel_data[i + 1] = g;
                 pixel_data[i + 2] = b;
