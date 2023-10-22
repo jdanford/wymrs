@@ -1,19 +1,21 @@
 use std::collections::VecDeque;
 
-use crate::{Color, Direction, Point};
+use sdl2::rect::Point;
+
+use crate::{Color, Direction};
 
 pub struct Wyrm {
     pub id: u16,
     pub color: Color,
     pub direction: Direction,
-    pub segments: VecDeque<Point<u16>>,
+    pub segments: VecDeque<Point>,
 }
 
 pub struct NewWyrmParams {
     pub id: u16,
     pub color: Color,
     pub direction: Direction,
-    pub position: Point<u16>,
+    pub position: Point,
 }
 
 impl Wyrm {
@@ -36,7 +38,7 @@ impl Wyrm {
     }
 
     #[must_use]
-    pub fn head(&self) -> Point<u16> {
+    pub fn head(&self) -> Point {
         *self.segments.get(0).expect("wyrm is empty")
     }
 }

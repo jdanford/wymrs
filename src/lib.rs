@@ -8,18 +8,18 @@
     )
 )]
 
+mod app;
 mod color;
 pub mod config;
 mod direction;
 mod error;
-mod point;
 mod tile;
 mod world;
 mod wyrm;
 
+pub use app::App;
 pub use color::{random_wyrm_color, Color};
 pub use direction::{Direction, RelativeDirection};
 pub use error::Result;
-pub use point::Point;
 pub use world::{NewWorldParams, World};
 pub use wyrm::{NewWyrmParams, Wyrm};

@@ -1,4 +1,4 @@
-use crate::Point;
+use sdl2::rect::Point;
 
 #[derive(Copy, Clone, Eq, PartialEq)]
 pub enum Direction {
@@ -63,7 +63,7 @@ impl Direction {
     }
 }
 
-impl From<Direction> for Point<i8> {
+impl From<Direction> for Point {
     fn from(direction: Direction) -> Self {
         match direction {
             Direction::Up => Point::new(0, -1),

@@ -3,12 +3,12 @@ use std::collections::HashMap;
 use num::clamp;
 use rand::{rngs::StdRng, Rng, SeedableRng};
 use rand_distr::Normal;
+use sdl2::rect::Point;
 
 use crate::{
     color,
     config::{PIXEL_FORMAT, SPAWN_INTERVAL},
-    random_wyrm_color, tile, Color, Direction, NewWyrmParams, Point, RelativeDirection, Result,
-    Wyrm,
+    random_wyrm_color, tile, Color, Direction, NewWyrmParams, RelativeDirection, Result, Wyrm,
 };
 
 pub struct World {
@@ -47,8 +47,8 @@ impl World {
     }
 
     fn fill(&mut self) {
-        for y in 0..self.height {
-            for x in 0..self.width {
+        for y in 0..i32::from(self.height) {
+            for x in 0..i32::from(self.width) {
                 let position = Point::new(x, y);
                 let tile = if self.at_edge(position) {
                     tile::WALL
@@ -63,7 +63,7 @@ impl World {
         }
     }
 
-    fn get_tile(&self, position: Point<u16>) -> Result<u16> {
+    fn get_tile(&self, position: Point) -> Result<u16> {
         let index = self.index(position);
         self.tiles
             .get(index)
@@ -71,17 +71,21 @@ impl World {
             .ok_or(format!("invalid position: {position:?}"))
     }
 
-    pub fn set_tile(&mut self, position: Point<u16>, tile: u16) {
+    pub fn set_tile(&mut self, position: Point, tile: u16) {
         let index = self.index(position);
         self.tiles[index] = tile;
     }
 
-    fn index(&self, position: Point<u16>) -> usize {
-        usize::from(position.y) * usize::from(self.width) + usize::from(position.x)
+    #[allow(clippy::cast_sign_loss)]
+    fn index(&self, position: Point) -> usize {
+        (position.y() * i32::from(self.width) + position.x()) as usize
     }
 
-    fn at_edge(&self, point: Point<u16>) -> bool {
-        point.x == 0 || point.x == self.width - 1 || point.y == 0 || point.y == self.height - 1
+    fn at_edge(&self, point: Point) -> bool {
+        point.x == 0
+            || point.x == i32::from(self.width) - 1
+            || point.y == 0
+            || point.y == i32::from(self.height) - 1
     }
 
     fn get_next_wyrm_id(&mut self) -> u16 {
@@ -98,7 +102,7 @@ impl World {
         next_id
     }
 
-    pub fn create_wyrm(&mut self, position: Point<u16>) -> Result<()> {
+    pub fn create_wyrm(&mut self, position: Point) -> Result<()> {
         let current_tile = self.get_tile(position)?;
         if current_tile == tile::WALL || current_tile >= tile::WYRM {
             return Ok(());
@@ -122,13 +126,12 @@ impl World {
     }
 
     #[allow(clippy::cast_possible_truncation)]
-    #[allow(clippy::cast_sign_loss)]
     fn create_random_wyrm(&mut self) -> Result<()> {
         let distribution = Normal::new(0.5, 0.1).map_err(|e| e.to_string())?;
-        let rx = (self.rng.sample(distribution) * f32::from(self.width)) as u16;
-        let ry = (self.rng.sample(distribution) * f32::from(self.height)) as u16;
-        let x = clamp(rx, 1, self.width - 2);
-        let y = clamp(ry, 1, self.height - 2);
+        let rx = (self.rng.sample(distribution) * f32::from(self.width)) as i32;
+        let ry = (self.rng.sample(distribution) * f32::from(self.height)) as i32;
+        let x = clamp(rx, 1, i32::from(self.width) - 2);
+        let y = clamp(ry, 1, i32::from(self.height) - 2);
         let position = Point::new(x, y);
         self.create_wyrm(position)
     }
@@ -175,7 +178,7 @@ impl World {
     ) -> Result<()> {
         let wyrm = self.get_wyrm(wyrm_id)?;
         let direction = wyrm.direction.rotate(relative_direction);
-        let destination = wyrm.head().move_in_direction(direction)?;
+        let destination = wyrm.head() + direction.into();
 
         let tile_id = self.get_tile(destination)?;
         match tile_id {
@@ -200,7 +203,7 @@ impl World {
         poop: bool,
     ) -> Result<()> {
         let wyrm = self.get_wyrm_mut(wyrm_id)?;
-        let destination = wyrm.head().move_in_direction(direction)?;
+        let destination = wyrm.head() + direction.into();
         wyrm.segments.push_front(destination);
         self.set_tile(destination, wyrm_id);
 
@@ -262,13 +265,13 @@ impl World {
         }
     }
 
-    fn get_neighbors(&self, position: Point<u16>, forward: Direction) -> Result<Neighbors> {
+    fn get_neighbors(&self, position: Point, forward: Direction) -> Result<Neighbors> {
         let left = forward.rotate(RelativeDirection::Left);
         let right = forward.rotate(RelativeDirection::Right);
 
-        let forward_position = position.move_in_direction(forward)?;
-        let left_position = position.move_in_direction(left)?;
-        let right_position = position.move_in_direction(right)?;
+        let forward_position = position + forward.into();
+        let left_position = position + left.into();
+        let right_position = position + right.into();
 
         let forward_tile = self.get_tile(forward_position)?;
         let left_tile = self.get_tile(left_position)?;
@@ -284,8 +287,8 @@ impl World {
     }
 
     pub fn render(&self, pixel_data: &mut [u8]) {
-        for y in 0..self.height {
-            for x in 0..self.width {
+        for y in 0..i32::from(self.height) {
+            for x in 0..i32::from(self.width) {
                 let position = Point::new(x, y);
                 let tile_index = self.index(position);
                 let tile = self.tiles[tile_index];

@@ -10,7 +10,7 @@ pub const TILE_SIZE: u32 = 8;
 pub const SPAWN_INTERVAL: usize = 32;
 
 pub const FPS: u64 = 16;
-pub const STEP_TIME: Duration = Duration::from_micros(1_000_000 / FPS);
+pub const STEP_TIME: Duration = Duration::from_nanos(1_000_000_000 / FPS);
 
 pub const CLEAR_COLOR: Color = Color::BLACK;
 pub const PIXEL_FORMAT: PixelFormatEnum = PixelFormatEnum::RGB24;
