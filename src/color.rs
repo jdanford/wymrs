@@ -1,10 +1,11 @@
+use anyhow::Result;
 use once_cell::sync::Lazy;
 use palette::{FromColor, Oklch, Srgb};
 use rand::Rng;
 use rand_distr::Normal;
 pub use sdl2::pixels::Color;
 
-use crate::{tile, Result};
+use crate::tile;
 
 type NormalDistributionValues = (f32, f32);
 type LchDistributionValues = (
@@ -13,9 +14,9 @@ type LchDistributionValues = (
     NormalDistributionValues,
 );
 
-pub static EMPTY: Lazy<Color> = Lazy::new(|| color_from_oklch(0.184, 0.052, 249.7));
+pub static EMPTY: Lazy<Color> = Lazy::new(|| color_from_oklch(0.18, 0.05, 250.0));
 pub static WALL: Lazy<Color> = Lazy::new(|| color_from_oklch(0.6, 0.09, 300.0));
-pub static FOOD: Lazy<Color> = Lazy::new(|| color_from_oklch(0.4, 0.152, 19.7));
+pub static FOOD: Lazy<Color> = Lazy::new(|| color_from_oklch(0.4, 0.15, 20.0));
 pub static MISSING: Lazy<Color> = Lazy::new(|| color_from_oklch(1.0, 0.0, 0.0));
 
 // common
@@ -50,7 +51,7 @@ const WYRM_COLOR_DISTRIBUTIONS: [LchDistributionValues; 15] = [
 const HUE_MAX: f32 = 360.0;
 
 fn random_normal<R: Rng>(rng: &mut R, (mean, std_dev): NormalDistributionValues) -> Result<f32> {
-    let distribution = Normal::new(mean, std_dev).map_err(|e| e.to_string())?;
+    let distribution = Normal::new(mean, std_dev)?;
     Ok(rng.sample(distribution))
 }
 
@@ -70,15 +71,12 @@ fn random_color<R: Rng>(rng: &mut R, (dl, dc, dh): LchDistributionValues) -> Res
 
 #[allow(clippy::module_name_repetitions)]
 pub fn random_wyrm_color<R: Rng>(rng: &mut R, id: u16) -> Result<Color> {
-    let n: i32 = WYRM_COLOR_DISTRIBUTIONS
-        .len()
-        .try_into()
-        .map_err(|_| "too many color distributions".to_string())?;
+    let n: i32 = WYRM_COLOR_DISTRIBUTIONS.len().try_into()?;
 
     let offset: i32 = rng.gen_range(-1..=3);
     let base_index = i32::from(id - tile::WYRM);
     let raw_index = (base_index + offset + n) % n;
-    let index = usize::try_from(raw_index).map_err(|_| format!("invalid index {raw_index}"))?;
+    let index = usize::try_from(raw_index)?;
 
     let dist_vals = WYRM_COLOR_DISTRIBUTIONS[index];
     random_color(rng, dist_vals)

@@ -1,5 +1,6 @@
 use std::time::{Duration, Instant};
 
+use anyhow::{Error, Result};
 use sdl2::{
     event::Event,
     rect::Point,
@@ -12,13 +13,15 @@ use crate::{
     config::{
         CLEAR_COLOR, PIXEL_FORMAT, STEP_TIME, TILE_SIZE, WINDOW_HEIGHT, WINDOW_TITLE, WINDOW_WIDTH,
     },
-    NewWorldParams, Result, World,
+    NewWorldParams, World,
 };
 
 pub struct App {
+    #[allow(dead_code)]
     width: u16,
     #[allow(dead_code)]
     height: u16,
+    pitch: usize,
     display_ratio: u32,
     tile_size: u32,
     sdl_context: Sdl,
@@ -34,8 +37,8 @@ pub struct App {
 
 impl App {
     pub fn new() -> Result<App> {
-        let sdl_context = sdl2::init()?;
-        let video_subsystem = sdl_context.video()?;
+        let sdl_context = sdl2::init().map_err(Error::msg)?;
+        let video_subsystem = sdl_context.video().map_err(Error::msg)?;
 
         sdl2::hint::set("SDL_HINT_RENDER_SCALE_QUALITY", "nearest");
 
@@ -43,37 +46,30 @@ impl App {
             .window(WINDOW_TITLE, WINDOW_WIDTH, WINDOW_HEIGHT)
             .position_centered()
             .allow_highdpi()
-            .build()
-            .map_err(|e| e.to_string())?;
+            .build()?;
+        let (window_width, window_height) = window.drawable_size();
 
-        let canvas = window
-            .into_canvas()
-            .accelerated()
-            .present_vsync()
-            .build()
-            .map_err(|e| e.to_string())?;
-
-        let (window_width, window_height) = canvas.window().drawable_size();
+        let canvas = window.into_canvas().accelerated().present_vsync().build()?;
         let display_ratio = window_width / WINDOW_WIDTH;
 
         let tile_size = TILE_SIZE * display_ratio;
-        let width = u16::try_from(window_width / tile_size).map_err(|e| e.to_string())?;
-        let height = u16::try_from(window_height / tile_size).map_err(|e| e.to_string())?;
+        let width = u16::try_from(window_width / tile_size)?;
+        let height = u16::try_from(window_height / tile_size)?;
 
         let pitch = PIXEL_FORMAT.byte_size_of_pixels(width.into());
         let byte_size = PIXEL_FORMAT.byte_size_from_pitch_and_height(pitch, height.into());
         let pixel_data = vec![0u8; byte_size];
 
         let texture_creator = canvas.texture_creator();
-        let texture = texture_creator
-            .create_texture_streaming(PIXEL_FORMAT, width.into(), height.into())
-            .map_err(|e| e.to_string())?;
+        let texture =
+            texture_creator.create_texture_streaming(PIXEL_FORMAT, width.into(), height.into())?;
 
         let world = World::new(&NewWorldParams { width, height });
 
         Ok(App {
             width,
             height,
+            pitch,
             display_ratio,
             tile_size,
             sdl_context,
@@ -87,11 +83,6 @@ impl App {
         })
     }
 
-    #[must_use]
-    fn pixel_pitch(&self) -> usize {
-        PIXEL_FORMAT.byte_size_of_pixels(self.width.into())
-    }
-
     #[allow(clippy::cast_possible_wrap)]
     #[allow(clippy::cast_sign_loss)]
     fn world_coordinate_from_screen(&self, x: i32) -> i32 {
@@ -101,12 +92,13 @@ impl App {
     fn render(&mut self) -> Result<()> {
         self.world.render(&mut self.pixel_data[..]);
         self.texture
-            .update(None, &self.pixel_data[..], self.pixel_pitch())
-            .map_err(|e| e.to_string())?;
+            .update(None, &self.pixel_data[..], self.pitch)?;
 
         self.canvas.set_draw_color(CLEAR_COLOR);
         self.canvas.clear();
-        self.canvas.copy(&self.texture, None, None)?;
+        self.canvas
+            .copy(&self.texture, None, None)
+            .map_err(Error::msg)?;
         self.canvas.present();
         Ok(())
     }
@@ -130,7 +122,7 @@ impl App {
     }
 
     pub fn run(&mut self) -> Result<()> {
-        let mut event_pump = self.sdl_context.event_pump()?;
+        let mut event_pump = self.sdl_context.event_pump().map_err(Error::msg)?;
 
         self.render()?;
 

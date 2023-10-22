@@ -1,4 +1,5 @@
-use wymrs::{App, Result};
+use anyhow::Result;
+use wymrs::App;
 
 pub fn main() -> Result<()> {
     let mut app = App::new()?;

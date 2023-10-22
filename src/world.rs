@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 
+use anyhow::{anyhow, Result};
 use num::clamp;
 use rand::{rngs::StdRng, Rng, SeedableRng};
 use rand_distr::Normal;
@@ -8,7 +9,7 @@ use sdl2::rect::Point;
 use crate::{
     color,
     config::{PIXEL_FORMAT, SPAWN_INTERVAL},
-    random_wyrm_color, tile, Color, Direction, NewWyrmParams, RelativeDirection, Result, Wyrm,
+    random_wyrm_color, tile, Color, Direction, NewWyrmParams, RelativeDirection, Wyrm,
 };
 
 pub struct World {
@@ -68,7 +69,7 @@ impl World {
         self.tiles
             .get(index)
             .copied()
-            .ok_or(format!("invalid position: {position:?}"))
+            .ok_or(anyhow!("invalid position: {position:?}"))
     }
 
     pub fn set_tile(&mut self, position: Point, tile: u16) {
@@ -111,8 +112,7 @@ impl World {
         let id = self.get_next_wyrm_id();
         let color = random_wyrm_color(&mut self.rng, id)?;
         let direction_index = self.rng.gen_range(0..=3);
-        let direction = Direction::try_from(direction_index)
-            .map_err(|_| format!("can't cast {direction_index} to direction"))?;
+        let direction = Direction::try_from(direction_index).unwrap();
         let wyrm = Wyrm::new(&NewWyrmParams {
             id,
             color,
@@ -127,7 +127,7 @@ impl World {
 
     #[allow(clippy::cast_possible_truncation)]
     fn create_random_wyrm(&mut self) -> Result<()> {
-        let distribution = Normal::new(0.5, 0.1).map_err(|e| e.to_string())?;
+        let distribution = Normal::new(0.5, 0.1)?;
         let rx = (self.rng.sample(distribution) * f32::from(self.width)) as i32;
         let ry = (self.rng.sample(distribution) * f32::from(self.height)) as i32;
         let x = clamp(rx, 1, i32::from(self.width) - 2);
@@ -155,13 +155,13 @@ impl World {
     fn get_wyrm(&self, wyrm_id: u16) -> Result<&Wyrm> {
         self.wyrms
             .get(&wyrm_id)
-            .ok_or(format!("(get_wyrm) invalid wyrm ID: {wyrm_id}"))
+            .ok_or(anyhow!("invalid wyrm ID: {wyrm_id}"))
     }
 
     fn get_wyrm_mut(&mut self, wyrm_id: u16) -> Result<&mut Wyrm> {
         self.wyrms
             .get_mut(&wyrm_id)
-            .ok_or(format!("(get_wyrm_mut) invalid wyrm ID: {wyrm_id}"))
+            .ok_or(anyhow!("invalid wyrm ID: {wyrm_id}"))
     }
 
     fn update_wyrm(&mut self, wyrm_id: u16) -> Result<()> {
@@ -219,13 +219,13 @@ impl World {
         Ok(())
     }
 
-    #[allow(clippy::cast_precision_loss)]
     fn destroy_wyrm(&mut self, wyrm_id: u16) -> Result<()> {
         let wyrm = self
             .wyrms
             .remove(&wyrm_id)
-            .ok_or(format!("(destroy_wyrm) invalid wyrm ID: {wyrm_id}"))?;
+            .ok_or(anyhow!("invalid wyrm ID: {wyrm_id}"))?;
         for (i, position) in wyrm.segments.iter().copied().enumerate() {
+            #[allow(clippy::cast_precision_loss)]
             let food_chance = clamp(1.0 / (i as f64 + 1.0) + 0.5, 0.0, 1.0);
             let tile = if self.rng.gen_bool(food_chance) {
                 tile::FOOD
@@ -238,18 +238,17 @@ impl World {
         Ok(())
     }
 
-    #[allow(clippy::similar_names)]
-    #[allow(clippy::cast_precision_loss)]
-    fn fight_wyrms(&mut self, wyrm_a_id: u16, wyrm_b_id: u16) -> Result<()> {
-        let wyrm_a = self.get_wyrm(wyrm_a_id)?;
-        let wyrm_b = self.get_wyrm(wyrm_b_id)?;
-        let ratio = wyrm_a.size() as f32 / wyrm_b.size() as f32;
-        let advantage = self.rng.gen_range(8.0..=12.0) / 10.0;
-        let final_ratio = ratio * advantage;
-        let (winner_id, loser_id) = if final_ratio >= 0.5 {
-            (wyrm_a_id, wyrm_b_id)
+    fn fight_wyrms(&mut self, attacker_id: u16, defender_id: u16) -> Result<()> {
+        let attacker = self.get_wyrm(attacker_id)?;
+        let defender = self.get_wyrm(defender_id)?;
+        let size_factor = attacker.size() / (attacker.size() + defender.size());
+        let luck = self.rng.gen_range(0.8..1.2);
+        #[allow(clippy::cast_precision_loss)]
+        let win_chance = size_factor as f64 * luck;
+        let (winner_id, loser_id) = if self.rng.gen_bool(win_chance) {
+            (attacker_id, defender_id)
         } else {
-            (wyrm_b_id, wyrm_a_id)
+            (defender_id, attacker_id)
         };
 
         self.destroy_wyrm(loser_id)?;
